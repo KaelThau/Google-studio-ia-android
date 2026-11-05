@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -90,7 +89,6 @@ fun UrlSelectorDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                // Browser Fingerprint / Login Bypass Section
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Security,

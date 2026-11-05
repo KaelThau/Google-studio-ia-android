@@ -1,16 +1,15 @@
 package com.example.ui
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.os.Message
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
-import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -34,13 +33,13 @@ import com.example.model.StudioViewMode
 import com.example.util.StudioJsInjector
 
 enum class UserAgentProfile(val label: String) {
-    AUTO_SMART("Automático Inteligente (Firefox en Login -> Chrome en AI Studio)"),
-    CLEAN_CHROME_ANDROID("Chrome Nativo del Dispositivo (Sin marca WebView)"),
+    AUTO_SMART("Automático Inteligente (Recomendado)"),
+    CLEAN_CHROME_ANDROID("Chrome Android Nativo (Limpio)"),
     FIREFOX_DESKTOP("Firefox Desktop (Solo Login)"),
     CHROME_DESKTOP("Chrome Linux Desktop")
 }
 
-private class StudioJsBridge(
+class StudioJsBridge(
     private val onDomReportReady: (String) -> Unit,
     private val onErrorReportReady: (String) -> Unit
 ) {
@@ -61,16 +60,18 @@ private class StudioJsBridge(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun StudioWebView(
     targetUrl: String,
     navigateTrigger: Long,
     extractDomTrigger: Long,
     extractErrorTrigger: Long,
+    toggleSettingsTrigger: Long,
     currentMode: StudioViewMode,
     zoomPercent: Int,
     codeZoomPercent: Int,
+    showSuggestions: Boolean,
     reloadTrigger: Long,
     userAgentProfile: UserAgentProfile,
     onProgressChanged: (Int) -> Unit,
@@ -86,15 +87,15 @@ fun StudioWebView(
     val currentOnErrorReportExtracted by rememberUpdatedState(onErrorReportExtracted)
     val latestMode by rememberUpdatedState(currentMode)
     val latestCodeZoom by rememberUpdatedState(codeZoomPercent)
+    val latestShowSuggestions by rememberUpdatedState(showSuggestions)
 
-    // Native WebView HTTP/Console/Request trace buffer
     val nativeDiagnosticLogs = remember { mutableStateListOf<String>() }
 
     fun appendNativeLog(entry: String) {
-        nativeDiagnosticLogs.add(entry)
-        if (nativeDiagnosticLogs.size > 300) {
+        if (nativeDiagnosticLogs.size > 200) {
             nativeDiagnosticLogs.removeAt(0)
         }
+        nativeDiagnosticLogs.add(entry)
     }
 
     val defaultWebViewUa = remember {
@@ -114,7 +115,6 @@ fun StudioWebView(
 
     val resolvedUserAgent = remember(userAgentProfile, cleanChromeAndroidUa) {
         when (userAgentProfile) {
-            // AUTO_SMART starts with clean Chrome inside AI Studio, and switches to Firefox only if redirected to accounts.google.com
             UserAgentProfile.AUTO_SMART -> cleanChromeAndroidUa
             UserAgentProfile.CLEAN_CHROME_ANDROID -> cleanChromeAndroidUa
             UserAgentProfile.FIREFOX_DESKTOP -> StudioJsInjector.FIREFOX_USER_AGENT
@@ -152,10 +152,11 @@ fun StudioWebView(
 
             addJavascriptInterface(
                 StudioJsBridge(
-                    onDomReportReady = { report -> currentOnDomExtracted(report) },
+                    onDomReportReady = { report ->
+                        currentOnDomExtracted(report)
+                    },
                     onErrorReportReady = { jsReport ->
-                        val combined = buildString {
-                            append(jsReport)
+                        val nativeSection = buildString {
                             append("\n\n--- 5. TRAZA NATIVA DEL MOTOR WEBVIEW ANDROID (REQUESTS, HTTP & CONSOLE) ---\n")
                             if (nativeDiagnosticLogs.isEmpty()) {
                                 append("  (Sin registros nativos)\n")
@@ -165,7 +166,7 @@ fun StudioWebView(
                                 }
                             }
                         }
-                        currentOnErrorReportExtracted(combined)
+                        currentOnErrorReportExtracted(jsReport + nativeSection)
                     }
                 ),
                 "AndroidBridge"
@@ -177,98 +178,75 @@ fun StudioWebView(
         }
     }
 
-    // Update User-Agent dynamically when profile switches manually
     LaunchedEffect(resolvedUserAgent) {
         if (webView.settings.userAgentString != resolvedUserAgent) {
             webView.settings.userAgentString = resolvedUserAgent
-            webView.reload()
+            if (isInitialLoadDone) {
+                webView.reload()
+            }
         }
     }
 
-    // React to zoom level changes
     LaunchedEffect(zoomPercent) {
         webView.settings.textZoom = zoomPercent
     }
 
-    // React to view mode or code font zoom changes by injecting layout + font CSS
-    LaunchedEffect(currentMode, codeZoomPercent) {
-        val script = StudioJsInjector.getModeScript(currentMode, codeZoomPercent)
+    LaunchedEffect(currentMode, codeZoomPercent, showSuggestions) {
+        val script = StudioJsInjector.getModeScript(currentMode, codeZoomPercent, showSuggestions)
         webView.evaluateJavascript(script, null)
     }
 
-    // React to manual reload requests
-    LaunchedEffect(reloadTrigger) {
-        if (reloadTrigger > 0) {
-            webView.reload()
-        }
-    }
-
-    // React to DOM extraction requests
     LaunchedEffect(extractDomTrigger) {
-        if (extractDomTrigger > 0) {
+        if (extractDomTrigger > 0L) {
             webView.evaluateJavascript(StudioJsInjector.getDomExtractionScript(), null)
         }
     }
 
-    // React to Error Report extraction requests
     LaunchedEffect(extractErrorTrigger) {
-        if (extractErrorTrigger > 0) {
+        if (extractErrorTrigger > 0L) {
             webView.evaluateJavascript(StudioJsInjector.getErrorReportExtractionScript(), null)
         }
     }
 
-    // React ONLY to explicit user navigation requests
+    LaunchedEffect(toggleSettingsTrigger) {
+        if (toggleSettingsTrigger > 0L) {
+            webView.evaluateJavascript(StudioJsInjector.getToggleSettingsSidebarScript(), null)
+        }
+    }
+
+    LaunchedEffect(reloadTrigger) {
+        if (reloadTrigger > 0L) {
+            webView.reload()
+        }
+    }
+
     LaunchedEffect(targetUrl, navigateTrigger) {
-        if (!isInitialLoadDone || navigateTrigger > 0) {
+        if (!isInitialLoadDone) {
             isInitialLoadDone = true
+            webView.loadUrl(targetUrl)
+        } else if (navigateTrigger > 0L) {
             webView.loadUrl(targetUrl)
         }
     }
 
-    DisposableEffect(userAgentProfile, cleanChromeAndroidUa) {
+    DisposableEffect(Unit) {
         webView.webViewClient = object : WebViewClient() {
-
-            override fun shouldInterceptRequest(
-                view: WebView?,
-                request: WebResourceRequest?
-            ): WebResourceResponse? {
-                request?.let { req ->
-                    val reqUrl = req.url?.toString() ?: ""
-                    val host = req.url?.host ?: ""
-                    // Log all API / RPC / MakerSuite / GoogleAPIs requests at the native level with their headers
-                    if (host.contains("clients6.google.com") ||
-                        host.contains("googleapis.com") ||
-                        reqUrl.contains("MakerSuiteService") ||
-                        reqUrl.contains("/_/MakerSuite") ||
-                        reqUrl.contains("applet")
-                    ) {
-                        val hdrs = req.requestHeaders?.entries?.joinToString("; ") { "${it.key}=${it.value.take(80)}" } ?: ""
-                        appendNativeLog("[NATIVE_REQ] ${req.method} $reqUrl | Headers: {$hdrs}")
-                    }
-                }
-                return super.shouldInterceptRequest(view, request)
-            }
-
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                url?.let { currentUrlStr ->
-                    onUrlChanged(currentUrlStr)
-
-                    // Smart Auto-Switching between Login (Firefox UA) and AI Studio (Clean Chrome UA)
+                url?.let {
+                    onUrlChanged(it)
                     if (userAgentProfile == UserAgentProfile.AUTO_SMART && view != null) {
-                        val isGoogleLogin = currentUrlStr.contains("accounts.google.com")
-                        val desiredUa = if (isGoogleLogin) {
+                        val desiredUa = if (it.contains("accounts.google.com")) {
                             StudioJsInjector.FIREFOX_USER_AGENT
                         } else {
                             cleanChromeAndroidUa
                         }
                         if (view.settings.userAgentString != desiredUa) {
                             view.settings.userAgentString = desiredUa
-                            appendNativeLog("[UA_AUTO_SWITCH] Switched UA for ${Uri.parse(currentUrlStr).host} -> $desiredUa")
+                            appendNativeLog("[UA_AUTO_SWITCH] Switched UA for $it -> $desiredUa")
                         }
                     }
                 }
-
                 view?.evaluateJavascript(StudioJsInjector.getLoginStealthScript(), null)
                 view?.evaluateJavascript(StudioJsInjector.getErrorLoggerInitScript(), null)
             }
@@ -277,26 +255,14 @@ fun StudioWebView(
                 super.onPageFinished(view, url)
                 url?.let { onUrlChanged(it) }
                 CookieManager.getInstance().flush()
-
+                view?.evaluateJavascript(StudioJsInjector.getLoginStealthScript(), null)
                 view?.evaluateJavascript(StudioJsInjector.getErrorLoggerInitScript(), null)
                 view?.evaluateJavascript(StudioJsInjector.getInitScript()) {
-                    view.evaluateJavascript(StudioJsInjector.getModeScript(latestMode, latestCodeZoom), null)
+                    view.evaluateJavascript(
+                        StudioJsInjector.getModeScript(latestMode, latestCodeZoom, latestShowSuggestions),
+                        null
+                    )
                 }
-            }
-
-            override fun onReceivedHttpError(
-                view: WebView?,
-                request: WebResourceRequest?,
-                errorResponse: WebResourceResponse?
-            ) {
-                super.onReceivedHttpError(view, request, errorResponse)
-                val status = errorResponse?.statusCode ?: 0
-                val reqUrl = request?.url?.toString() ?: ""
-                val method = request?.method ?: "GET"
-                val reason = errorResponse?.reasonPhrase ?: ""
-                val reqHeaders = request?.requestHeaders?.entries?.joinToString("; ") { "${it.key}=${it.value.take(80)}" } ?: ""
-                val respHeaders = errorResponse?.responseHeaders?.entries?.joinToString("; ") { "${it.key}=${it.value}" } ?: ""
-                appendNativeLog("[HTTP_ERR_$status $reason] $method $reqUrl\n      ReqHeaders: {$reqHeaders}\n      RespHeaders: {$respHeaders}")
             }
 
             override fun onReceivedError(
@@ -306,12 +272,45 @@ fun StudioWebView(
             ) {
                 super.onReceivedError(view, request, error)
                 val reqUrl = request?.url?.toString() ?: ""
+                val errCode = error?.errorCode ?: -1
                 val desc = error?.description?.toString() ?: "Error de red"
-                val code = error?.errorCode ?: 0
-                appendNativeLog("[NET_ERR_$code] $reqUrl -> $desc")
+                appendNativeLog("[NET_ERR_$errCode] $reqUrl -> $desc")
                 if (request?.isForMainFrame == true) {
                     onErrorOccurred(desc)
                 }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                val statusCode = errorResponse?.statusCode ?: 0
+                val reqUrl = request?.url?.toString() ?: ""
+                val method = request?.method ?: "GET"
+                val reqHeaders = request?.requestHeaders?.entries?.joinToString("; ") { "${it.key}=${it.value}" } ?: ""
+                val respHeaders = errorResponse?.responseHeaders?.entries?.joinToString("; ") { "${it.key}=${it.value}" } ?: ""
+                appendNativeLog(
+                    "[HTTP_ERR_$statusCode $method] $reqUrl\n      ReqHeaders: {$reqHeaders}\n      RespHeaders: {$respHeaders}"
+                )
+            }
+
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): WebResourceResponse? {
+                val url = request?.url?.toString() ?: ""
+                if (url.contains("clients6.google.com") ||
+                    url.contains("googleapis.com") ||
+                    url.contains("MakerSuiteService") ||
+                    url.contains("/_/MakerSuite") ||
+                    url.contains("applet")
+                ) {
+                    val headers = request?.requestHeaders?.entries?.joinToString("; ") { "${it.key}=${it.value}" } ?: ""
+                    appendNativeLog("[NATIVE_REQ] ${request?.method} $url | Headers: {$headers}")
+                }
+                return super.shouldInterceptRequest(view, request)
             }
 
             override fun shouldOverrideUrlLoading(
@@ -319,29 +318,27 @@ fun StudioWebView(
                 request: WebResourceRequest?
             ): Boolean {
                 val url = request?.url?.toString() ?: return false
-
-                // If AUTO_SMART is enabled and navigating to accounts.google.com vs aistudio.google.com,
-                // set the matching User-Agent right before the navigation proceeds
                 if (userAgentProfile == UserAgentProfile.AUTO_SMART && view != null) {
-                    val isGoogleLogin = url.contains("accounts.google.com")
-                    val desiredUa = if (isGoogleLogin) {
+                    val desiredUa = if (url.contains("accounts.google.com")) {
                         StudioJsInjector.FIREFOX_USER_AGENT
                     } else {
                         cleanChromeAndroidUa
                     }
                     if (view.settings.userAgentString != desiredUa) {
                         view.settings.userAgentString = desiredUa
-                        appendNativeLog("[UA_PRE_NAV_SWITCH] Switched UA before loading ${Uri.parse(url).host}")
+                        appendNativeLog("[UA_PRE_NAV_SWITCH] Switched UA before loading $url")
+                        view.loadUrl(url)
+                        return true
                     }
                 }
-
-                if (url.startsWith("http://") || url.startsWith("https://")) {
-                    return false
-                }
                 return try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    context.startActivity(intent)
-                    true
+                    if (url.startsWith("http://") || url.startsWith("https://")) {
+                        false
+                    } else {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+                        context.startActivity(intent)
+                        true
+                    }
                 } catch (e: Exception) {
                     true
                 }
@@ -360,14 +357,49 @@ fun StudioWebView(
             }
 
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                consoleMessage?.let { msg ->
-                    appendNativeLog("[WEB_CONSOLE_${msg.messageLevel()}] ${msg.message()} (${msg.sourceId()}:${msg.lineNumber()})")
+                consoleMessage?.let { cm ->
+                    val lvl = cm.messageLevel()?.name ?: "LOG"
+                    if (lvl == "ERROR" || lvl == "WARNING") {
+                        appendNativeLog("[WEB_CONSOLE_$lvl] ${cm.message()} (${cm.sourceId()}:${cm.lineNumber()})")
+                    }
                 }
                 return super.onConsoleMessage(consoleMessage)
             }
 
-            override fun onPermissionRequest(request: PermissionRequest?) {
-                request?.grant(request.resources)
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                val transport = resultMsg?.obj as? WebView.WebViewTransport
+                if (transport != null && view != null) {
+                    val tempWebView = WebView(context)
+                    tempWebView.webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            v: WebView?,
+                            req: WebResourceRequest?
+                        ): Boolean {
+                            val popupUrl = req?.url?.toString()
+                            if (!popupUrl.isNullOrBlank()) {
+                                view.loadUrl(popupUrl)
+                            }
+                            tempWebView.destroy()
+                            return true
+                        }
+
+                        override fun onPageStarted(v: WebView?, popupUrl: String?, favicon: Bitmap?) {
+                            if (!popupUrl.isNullOrBlank()) {
+                                view.loadUrl(popupUrl)
+                            }
+                            tempWebView.destroy()
+                        }
+                    }
+                    transport.webView = tempWebView
+                    resultMsg.sendToTarget()
+                    return true
+                }
+                return false
             }
         }
 

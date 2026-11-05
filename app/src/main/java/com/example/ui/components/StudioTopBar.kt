@@ -1,7 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,14 +19,15 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
@@ -48,11 +48,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.model.StudioViewMode
 import com.example.ui.theme.StudioAmber
@@ -61,7 +59,7 @@ import com.example.ui.theme.StudioBorder
 import com.example.ui.theme.StudioCard
 import com.example.ui.theme.StudioGreen
 import com.example.ui.theme.StudioIndigo
-import com.example.ui.theme.StudioRed
+import com.example.ui.theme.StudioNavy
 import com.example.ui.theme.StudioSurface
 import com.example.ui.theme.StudioTextMuted
 import com.example.ui.theme.StudioTextPrimary
@@ -75,6 +73,9 @@ fun StudioTopBar(
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
     onResetZoom: () -> Unit,
+    showSuggestions: Boolean,
+    onToggleSuggestions: () -> Unit,
+    onOpenAiStudioSettings: () -> Unit,
     onReload: () -> Unit,
     onExtractDom: () -> Unit,
     onExtractErrorReport: () -> Unit,
@@ -83,6 +84,7 @@ fun StudioTopBar(
     modifier: Modifier = Modifier
 ) {
     var viewMenuExpanded by remember { mutableStateOf(false) }
+    var toolsMenuExpanded by remember { mutableStateOf(false) }
     var debugMenuExpanded by remember { mutableStateOf(false) }
 
     Surface(
@@ -90,42 +92,36 @@ fun StudioTopBar(
         tonalElevation = 4.dp,
         modifier = modifier.fillMaxWidth()
     ) {
-        // statusBarsPadding() ensures the top bar starts strictly below the system clock, notifications, Wi-Fi & battery bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
-                .height(48.dp)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left group: App Icon + View Dropdown + Debug Dropdown
+            // Left Group: App Icon + 3 Dropdown Menus ([Vista ▾], [Opciones ▾], [Debug ▾])
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Brand Icon
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = "Studio Tablet",
                     tint = StudioBlue,
-                    modifier = Modifier
-                        .padding(start = 2.dp, end = 2.dp)
-                        .size(20.dp)
+                    modifier = Modifier.size(20.dp)
                 )
 
-                // 1. View Mode Dropdown Button ("Vista: <Modo>")
+                // 1. View Mode Dropdown Menu
                 Box {
                     OutlinedButton(
                         onClick = { viewMenuExpanded = true },
                         shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, StudioBlue.copy(alpha = 0.6f)),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = StudioBlue.copy(alpha = 0.14f),
-                            contentColor = StudioBlue
+                            contentColor = StudioTextPrimary
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, StudioBlue.copy(alpha = 0.6f)),
-                        contentPadding = PaddingValues(start = 10.dp, end = 6.dp, top = 0.dp, bottom = 0.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                         modifier = Modifier
                             .height(34.dp)
                             .testTag("dropdown_view_mode_button")
@@ -141,14 +137,13 @@ fun StudioTopBar(
                             text = currentMode.shortLabel,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = StudioTextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            color = StudioTextPrimary
                         )
+                        Spacer(modifier = Modifier.width(2.dp))
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = "Desplegar Vistas",
-                            tint = StudioBlue,
+                            tint = StudioTextSecondary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -159,7 +154,7 @@ fun StudioTopBar(
                         modifier = Modifier.background(StudioCard)
                     ) {
                         StudioViewMode.entries.forEach { mode ->
-                            val isSelected = mode == currentMode
+                            val isSelected = currentMode == mode
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -177,16 +172,15 @@ fun StudioTopBar(
                                         modifier = Modifier.size(18.dp)
                                     )
                                 },
-                                trailingIcon = {
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Seleccionado",
-                                            tint = StudioBlue,
-                                            modifier = Modifier.size(16.dp)
+                                trailingIcon = if (isSelected) {
+                                    {
+                                        Text(
+                                            text = "Seleccionado",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = StudioBlue
                                         )
                                     }
-                                },
+                                } else null,
                                 onClick = {
                                     viewMenuExpanded = false
                                     onModeSelected(mode)
@@ -197,17 +191,169 @@ fun StudioTopBar(
                     }
                 }
 
-                // 2. Debug / Analysis Dropdown Button ("Debug ▾")
+                // 2. Options Dropdown Menu ([⚙️ Opciones ▾])
+                Box {
+                    OutlinedButton(
+                        onClick = { toolsMenuExpanded = true },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, StudioBorder),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = StudioNavy.copy(alpha = 0.6f),
+                            contentColor = StudioTextPrimary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .height(34.dp)
+                            .testTag("dropdown_options_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = StudioAmber,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "Opciones",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = StudioTextPrimary
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Desplegar Opciones",
+                            tint = StudioTextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = toolsMenuExpanded,
+                        onDismissRequest = { toolsMenuExpanded = false },
+                        modifier = Modifier.background(StudioCard)
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Menú Lateral AI Studio (⚙️)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = StudioTextPrimary
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = null,
+                                    tint = StudioBlue,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            onClick = {
+                                toolsMenuExpanded = false
+                                onOpenAiStudioSettings()
+                            },
+                            modifier = Modifier.testTag("menu_item_aistudio_settings")
+                        )
+
+                        HorizontalDivider(color = StudioBorder)
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = if (showSuggestions) "Ocultar Sugerencias del Chat" else "Mostrar Sugerencias del Chat",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = StudioTextPrimary
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Lightbulb,
+                                    contentDescription = null,
+                                    tint = if (showSuggestions) StudioAmber else StudioTextSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            trailingIcon = if (showSuggestions) {
+                                {
+                                    Text(
+                                        text = "Visibles",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = StudioAmber
+                                    )
+                                }
+                            } else null,
+                            onClick = {
+                                toolsMenuExpanded = false
+                                onToggleSuggestions()
+                            },
+                            modifier = Modifier.testTag("menu_item_toggle_suggestions")
+                        )
+
+                        HorizontalDivider(color = StudioBorder)
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Recargar Página",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = StudioTextPrimary
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    tint = StudioGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            onClick = {
+                                toolsMenuExpanded = false
+                                onReload()
+                            },
+                            modifier = Modifier.testTag("menu_item_reload_page")
+                        )
+
+                        HorizontalDivider(color = StudioBorder)
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Conexión y Secciones (🌐)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = StudioTextPrimary
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Language,
+                                    contentDescription = null,
+                                    tint = StudioIndigo,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            onClick = {
+                                toolsMenuExpanded = false
+                                onOpenUrlSelector()
+                            },
+                            modifier = Modifier.testTag("menu_item_open_url_selector")
+                        )
+                    }
+                }
+
+                // 3. Debug Dropdown Menu ([🐞 Debug ▾])
                 Box {
                     OutlinedButton(
                         onClick = { debugMenuExpanded = true },
                         shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, StudioBorder),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = StudioCard,
+                            containerColor = StudioNavy.copy(alpha = 0.6f),
                             contentColor = StudioTextPrimary
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, StudioBorder),
-                        contentPadding = PaddingValues(start = 10.dp, end = 6.dp, top = 0.dp, bottom = 0.dp),
+                        contentPadding = PaddingValues(horizontal = 9.dp, vertical = 4.dp),
                         modifier = Modifier
                             .height(34.dp)
                             .testTag("dropdown_debug_button")
@@ -216,15 +362,16 @@ fun StudioTopBar(
                             imageVector = Icons.Default.BugReport,
                             contentDescription = null,
                             tint = StudioGreen,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
-                        Spacer(modifier = Modifier.width(5.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Debug",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = StudioTextPrimary
                         )
+                        Spacer(modifier = Modifier.width(2.dp))
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = "Desplegar Opciones de Debug",
@@ -248,9 +395,9 @@ fun StudioTopBar(
                             },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Download,
+                                    imageVector = Icons.Default.DataObject,
                                     contentDescription = null,
-                                    tint = StudioGreen,
+                                    tint = StudioBlue,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -261,7 +408,7 @@ fun StudioTopBar(
                             modifier = Modifier.testTag("menu_item_extract_dom")
                         )
 
-                        HorizontalDivider(color = StudioBorder.copy(alpha = 0.5f))
+                        HorizontalDivider(color = StudioBorder)
 
                         DropdownMenuItem(
                             text = {
@@ -275,7 +422,7 @@ fun StudioTopBar(
                                 Icon(
                                     imageVector = Icons.Default.BugReport,
                                     contentDescription = null,
-                                    tint = StudioRed,
+                                    tint = StudioAmber,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
@@ -289,15 +436,14 @@ fun StudioTopBar(
                 }
             }
 
-            // Right group: Zoom Controls + Reload + URL/Section Selector + Help
+            // Right Group: Zoom Controls + Help
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Zoom Out
                 IconButton(
                     onClick = onZoomOut,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(32.dp)
                         .testTag("button_zoom_out")
                 ) {
                     Icon(
@@ -308,24 +454,21 @@ fun StudioTopBar(
                     )
                 }
 
-                // Zoom Percentage Pill (Tap to reset to 100%)
                 Text(
                     text = "$zoomPercent%",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
                     color = if (zoomPercent != 100) StudioBlue else StudioTextMuted,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
                         .clickable { onResetZoom() }
                         .padding(horizontal = 4.dp, vertical = 4.dp)
                         .testTag("zoom_percent_label")
                 )
 
-                // Zoom In
                 IconButton(
                     onClick = onZoomIn,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(32.dp)
                         .testTag("button_zoom_in")
                 ) {
                     Icon(
@@ -336,41 +479,10 @@ fun StudioTopBar(
                     )
                 }
 
-                // Reload Page
-                IconButton(
-                    onClick = onReload,
-                    modifier = Modifier
-                        .size(34.dp)
-                        .testTag("button_reload_page")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Recargar Página",
-                        tint = StudioTextSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // Navigate / URL & Browser Profile Selector
-                IconButton(
-                    onClick = onOpenUrlSelector,
-                    modifier = Modifier
-                        .size(34.dp)
-                        .testTag("button_open_url_selector")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Language,
-                        contentDescription = "Secciones y Perfil de Navegador",
-                        tint = StudioTextSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // Help Dialog
                 IconButton(
                     onClick = onOpenHelp,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(32.dp)
                         .testTag("button_open_help_dialog")
                 ) {
                     Icon(

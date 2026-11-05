@@ -5,7 +5,8 @@ import java.util.Locale
 /**
  * Module 2: Code & Files Full-Screen Vertical Split View (25% Top Tree / 75% Bottom Code)
  * Isolated module strictly targeting the exact DOM nodes from estructura_aistudio.txt:
- * 1. Hides: div.console-left-panel (Chat), central ms-console-splitter, and ms-console-subheader.
+ * 1. Softly collapses: div.page-header, div.console-left-panel (Chat), central ms-console-splitter,
+ *    and ms-console-subheader without display:none so Angular components and settings gear stay alive.
  * 2. Stacks vertically (flex-direction: column):
  *    - Top section (25% height, 100% width): div.tree-view-container (file explorer).
  *    - Bottom section (75% height, 100% width): div.code-editor (Monaco editor).
@@ -23,23 +24,62 @@ object CodeViewModule {
         val lineHeightPx = (fontSizePx * 1.45).toInt().coerceAtLeast(12)
 
         return """
+            /* 0. Soft-collapse Top Project Bar (div.page-header) in Code Mode to free 64px of vertical height
+                  while keeping ms-settings-toggle-button alive in the DOM */
+            ms-console-embed > .page-header,
+            ms-console-embed div.page-header {
+                height: 0px !important;
+                min-height: 0px !important;
+                max-height: 0px !important;
+                margin: 0px !important;
+                padding: 0px !important;
+                border: none !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+
             /* 1. Ensure main root container spans 100% width and height */
             ms-console-embed .root,
             ms-console-embed .root > .container {
                 width: 100% !important;
                 max-width: 100% !important;
                 height: 100% !important;
+                max-height: 100% !important;
+                top: 0 !important;
                 display: flex !important;
                 flex-direction: row !important;
             }
 
-            /* 2. Hide Left Panel (Chat), Central Splitter, and the Subheader button row */
+            /* 2. Soft-collapse Left Panel (Chat), Central Splitter, and the Subheader button row */
             ms-console-embed .console-left-panel,
             ms-console-embed .console-left-panel.visible,
             div.console-left-panel,
-            ms-console-embed .root > .container > ms-console-splitter,
+            ms-console-embed .root > .container > ms-console-splitter {
+                width: 0px !important;
+                min-width: 0px !important;
+                max-width: 0px !important;
+                flex: 0 0 0px !important;
+                margin: 0px !important;
+                padding: 0px !important;
+                border: none !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+
             ms-console-embed ms-console-subheader {
-                display: none !important;
+                height: 0px !important;
+                min-height: 0px !important;
+                max-height: 0px !important;
+                margin: 0px !important;
+                padding: 0px !important;
+                border: none !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
             }
 
             /* 3. Expand Right Panel to 100% full screen */
@@ -54,6 +94,9 @@ object CodeViewModule {
                 height: 100% !important;
                 flex: 1 1 100% !important;
                 left: 0 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
             }
 
             /* 4. Convert Editor Container into a single vertical column (Top: File Tree, Bottom: Code) */
@@ -68,11 +111,21 @@ object CodeViewModule {
                 height: 100% !important;
                 flex: 1 1 100% !important;
                 overflow: hidden !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
             }
 
-            /* 5. Hide the original vertical splitter inside editor-container */
+            /* 5. Soft-collapse the original vertical splitter inside editor-container */
             ms-console-embed .editor-container > ms-console-splitter {
-                display: none !important;
+                height: 0px !important;
+                min-height: 0px !important;
+                max-height: 0px !important;
+                width: 0px !important;
+                flex: 0 0 0px !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
             }
 
             /* 6. Top Section: File Tree (100% width, 25% height) */
@@ -151,10 +204,15 @@ object CodeViewModule {
                 line-height: ${lineHeightPx}px !important;
             }
 
-            /* 9. Hide Applet Preview Overlay while in Code-Only Mode */
+            /* 9. Soft-collapse Applet Preview Overlay while in Code-Only Mode */
             ms-console-embed .applet-container,
             div.applet-container {
-                display: none !important;
+                width: 0px !important;
+                height: 0px !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
             }
         """.trimIndent()
     }

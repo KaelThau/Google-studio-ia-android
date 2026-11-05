@@ -4,21 +4,19 @@ Entorno móvil optimizado para tablets que ejecuta la plataforma oficial de **Go
 
 ---
 
-## Decisiones Implementadas
+## Ajustes Quirúrgicos Implementados
 
-- **Plataforma Real:** Carga directa de `aistudio.google.com` utilizando un User-Agent de **Desktop Chrome moderno** (`Chrome/131.0.0.0`), permitiendo el acceso completo al entorno de escritorio y evitando el bloqueo de navegador móvil o `403 disallowed_useragent`.
-- **Soporte de Autenticación de Google:** Configuración de `CookieManager` con soporte de cookies de terceros y `WebChromeClient.onCreateWindow` para gestionar ventanas emergentes de OAuth y Google Sign-In.
-- **Inyector de CSS/DOM Inteligente:**
-  - Script que identifica dinámicamente los contenedores de Chat, Código y Preview.
-  - Modos de pantalla completa:
-    1. **Todo (Original):** Visualización estándar del escritorio con todos los paneles.
-    2. **Chat Completo (100%):** Oculta el editor y el emulador para redactar prompts largos y revisar respuestas con ancho completo.
-    3. **Código Completo (100%):** Maximiza el explorador de archivos y el editor Monaco al 100% de la pantalla para revisar y editar código sin recortes.
-    4. **Preview Completo (100%):** Centra y maximiza el emulador de streaming o lienzo de previsualización al 100%.
-    5. **Split Chat + Preview (50/50):** Panel dual para iterar prompts y ver cambios en tiempo real.
-    6. **Split Código + Preview (50/50):** Panel dual para inspeccionar el código Kotlin y la UI interactiva lado a lado.
-- **Controles Táctiles y Ergonomía:**
-  - **Barra Superior Adaptativa:** Chips de selección de modo, controles de Zoom (-/+) con reseteo a 100%, botón de recarga, selector de URLs rápidas (Build, Prompts, Documentación) y diálogo de ayuda.
-  - **Píldora Flotante (Floating Mode Pill):** Botonera flotante en la parte inferior para alternar de vista con un solo toque del pulgar sin tener que estirar la mano hacia la parte superior de la tablet.
-  - **Indicador de Progreso:** Barra lineal para seguimiento de carga de página.
-  - **Manejo de Errores:** Tarjeta con estado de desconexión y botón de reintento.
+1. **Protección Total de la Barra Superior & Botón de Engranaje:**
+   - La barra de cabecera (`header`, `[role="banner"]`, `mat-toolbar`) ahora está explícitamente protegida: **nunca se destruye ni se le aplica `display: none`**.
+   - Mantiene `z-index: 1000`, `position: relative` y `pointer-events: auto`.
+   - Se habilitó un botón en la barra nativa para alternar entre **Modo Normal** y **Modo Compacto (40px)**, permitiendo ganar espacio vertical sin desconectar los escuchadores de clic ni bloquear el menú de configuración/engranaje.
+   - Todos los contenedores de menús emergentes y popovers de Angular (`.cdk-overlay-container`, `.mat-mdc-menu-panel`, `[role="menu"]`, `[role="dialog"]`) tienen `z-index: 999999 !important` para que el menú de ajustes siempre se dibuje por encima de todo.
+
+2. **Preservación del Chat & Historial de Conversación (Anti-Virtual Scroll Collapse):**
+   - Se eliminó por completo el uso de `display: none !important` en las columnas no activas.
+   - Se sustituyó por un **colapsado suave no destructivo**:
+     `width: 0px !important; min-width: 0px; max-width: 0px; flex: 0 0 0px; overflow: hidden; opacity: 0; pointer-events: none; visibility: hidden;`
+   - Los contenedores de mensajes del chat (`cdk-virtual-scroll-viewport`, `.chat-turn-list`, `.messages-container`) y la barra de sugerencias tienen reglas explícitas de visibilidad y altura mínima para que el motor de virtual scrolling no detecte 0px ni desmonte el historial de mensajes.
+
+3. **Herramienta de Diagnóstico "Inspector DOM" en Vivo:**
+   - Se añadió un botón en la barra superior (icono `{}`) que ejecuta un escaneo en vivo del HTML de Google AI Studio y muestra un diálogo con las etiquetas, clases y elementos detectados (con botón de **Copiar Diagnóstico** al portapapeles).

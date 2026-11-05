@@ -11,21 +11,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
@@ -37,7 +35,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -53,15 +50,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.sp
 import com.example.model.StudioViewMode
 import com.example.ui.components.HelpDialog
 import com.example.ui.components.StudioTopBar
@@ -75,57 +70,51 @@ import com.example.ui.theme.StudioSurface
 import com.example.ui.theme.StudioTextMuted
 import com.example.ui.theme.StudioTextPrimary
 import com.example.util.StudioJsInjector
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun StudioScreen() {
-    val context = LocalContext.current
     var targetUrl by remember { mutableStateOf(StudioJsInjector.DEFAULT_STUDIO_URL) }
+    var observedUrl by remember { mutableStateOf(StudioJsInjector.DEFAULT_STUDIO_URL) }
     var navigateTrigger by remember { mutableLongStateOf(0L) }
     var extractDomTrigger by remember { mutableLongStateOf(0L) }
     var extractErrorTrigger by remember { mutableLongStateOf(0L) }
-    var pendingTextToSave by remember { mutableStateOf<String?>(null) }
-    var observedUrl by remember { mutableStateOf(StudioJsInjector.DEFAULT_STUDIO_URL) }
+    var toggleSettingsTrigger by remember { mutableLongStateOf(0L) }
     var currentMode by remember { mutableStateOf(StudioViewMode.ALL) }
-    var userAgentProfile by remember { mutableStateOf(UserAgentProfile.AUTO_SMART) }
     var zoomPercent by remember { mutableIntStateOf(100) }
     var codeZoomPercent by remember { mutableIntStateOf(100) }
+    var showSuggestions by remember { mutableStateOf(false) }
+    var userAgentProfile by remember { mutableStateOf(UserAgentProfile.AUTO_SMART) }
     var reloadTrigger by remember { mutableLongStateOf(0L) }
     var pageProgress by remember { mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUrlSelector by remember { mutableStateOf(false) }
     var showHelpDialog by remember { mutableStateOf(false) }
+    var pendingTextToSave by remember { mutableStateOf<String?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    // Native Android "Save As..." File Picker Launcher for .txt files (both DOM and Error reports)
     val saveTxtLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri: Uri? ->
-        val contentToSave = pendingTextToSave
-        if (uri != null && contentToSave != null) {
-            scope.launch {
-                val success = withContext(Dispatchers.IO) {
-                    try {
-                        context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                            outputStream.write(contentToSave.toByteArray(Charsets.UTF_8))
-                            outputStream.flush()
-                        }
-                        true
-                    } catch (e: Exception) {
-                        false
-                    }
+        val content = pendingTextToSave
+        if (uri != null && content != null) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(content.toByteArray(Charsets.UTF_8))
                 }
-                if (success) {
+                scope.launch {
                     snackbarHostState.showSnackbar("Archivo .txt guardado correctamente")
-                } else {
-                    snackbarHostState.showSnackbar("Error al guardar el archivo .txt")
+                }
+            } catch (e: Exception) {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Error al guardar: ${e.message}")
                 }
             }
         }
+        pendingTextToSave = null
     }
 
     // Back handler: if in a specific mode, switch back to ALL mode first
@@ -134,9 +123,6 @@ fun StudioScreen() {
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(), // Automatically resizes the layout when the soft keyboard opens or closes
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             StudioTopBar(
@@ -157,21 +143,36 @@ fun StudioScreen() {
                 onResetZoom = {
                     zoomPercent = 100
                 },
-                onReload = {
-                    errorMessage = null
-                    reloadTrigger = System.currentTimeMillis()
+                showSuggestions = showSuggestions,
+                onToggleSuggestions = {
+                    showSuggestions = !showSuggestions
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            if (showSuggestions) "Sugerencias visibles" else "Sugerencias ocultas"
+                        )
+                    }
+                },
+                onOpenAiStudioSettings = {
+                    toggleSettingsTrigger = System.currentTimeMillis()
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Abriendo menú lateral de AI Studio...")
+                    }
                 },
                 onExtractDom = {
+                    extractDomTrigger = System.currentTimeMillis()
                     scope.launch {
                         snackbarHostState.showSnackbar("Extrayendo estructura DOM...")
                     }
-                    extractDomTrigger = System.currentTimeMillis()
                 },
                 onExtractErrorReport = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Capturando diagnóstico de errores...")
-                    }
                     extractErrorTrigger = System.currentTimeMillis()
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Recopilando logs de consola y red...")
+                    }
+                },
+                onReload = {
+                    errorMessage = null
+                    reloadTrigger = System.currentTimeMillis()
                 },
                 onOpenUrlSelector = { showUrlSelector = true },
                 onOpenHelp = { showHelpDialog = true }
@@ -184,17 +185,19 @@ fun StudioScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 1. Base Layer: WebView
+            // Main WebView
             StudioWebView(
                 targetUrl = targetUrl,
                 navigateTrigger = navigateTrigger,
                 extractDomTrigger = extractDomTrigger,
                 extractErrorTrigger = extractErrorTrigger,
+                toggleSettingsTrigger = toggleSettingsTrigger,
                 currentMode = currentMode,
                 zoomPercent = zoomPercent,
                 codeZoomPercent = codeZoomPercent,
-                reloadTrigger = reloadTrigger,
+                showSuggestions = showSuggestions,
                 userAgentProfile = userAgentProfile,
+                reloadTrigger = reloadTrigger,
                 onProgressChanged = { progress ->
                     pageProgress = progress
                     if (progress >= 100) {
@@ -208,20 +211,20 @@ fun StudioScreen() {
                 onUrlChanged = { newUrl ->
                     observedUrl = newUrl
                 },
-                onDomExtracted = { report ->
-                    pendingTextToSave = report
+                onDomExtracted = { domReport ->
                     try {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        clipboard?.setPrimaryClip(ClipData.newPlainText("estructura_aistudio", report))
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("AI Studio DOM", domReport))
                     } catch (_: Exception) {}
+                    pendingTextToSave = domReport
                     saveTxtLauncher.launch("estructura_aistudio.txt")
                 },
                 onErrorReportExtracted = { errorReport ->
-                    pendingTextToSave = errorReport
                     try {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        clipboard?.setPrimaryClip(ClipData.newPlainText("errores_aistudio", errorReport))
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("AI Studio Error Report", errorReport))
                     } catch (_: Exception) {}
+                    pendingTextToSave = errorReport
                     saveTxtLauncher.launch("errores_aistudio.txt")
                 },
                 modifier = Modifier
@@ -229,95 +232,7 @@ fun StudioScreen() {
                     .testTag("studio_webview")
             )
 
-            // 2. Top-Layer Native Android Overlay: Code Font Size Controls (Bottom-Right Corner)
-            // Rendered natively above the WebView so no CSS or CSP inside the web page can ever hide it.
-            if (currentMode == StudioViewMode.CODE_ONLY || currentMode == StudioViewMode.SPLIT_CODE_PREVIEW) {
-                Surface(
-                    color = StudioSurface.copy(alpha = 0.96f),
-                    shape = RoundedCornerShape(24.dp),
-                    border = BorderStroke(1.5.dp, StudioBlue),
-                    shadowElevation = 12.dp,
-                    tonalElevation = 8.dp,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = 18.dp)
-                        .zIndex(100f)
-                        .testTag("code_font_overlay_bar")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                if (codeZoomPercent > 60) {
-                                    codeZoomPercent -= 10
-                                }
-                            },
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, StudioBorder),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = StudioCard,
-                                contentColor = StudioBlue
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                            modifier = Modifier
-                                .height(34.dp)
-                                .testTag("code_font_decrease_button")
-                        ) {
-                            Text(
-                                text = "A-",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = StudioBlue
-                            )
-                        }
-
-                        Text(
-                            text = "$codeZoomPercent%",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = StudioTextPrimary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .widthIn(min = 44.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { codeZoomPercent = 100 }
-                                .padding(horizontal = 4.dp, vertical = 6.dp)
-                                .testTag("code_font_percent_label")
-                        )
-
-                        OutlinedButton(
-                            onClick = {
-                                if (codeZoomPercent < 240) {
-                                    codeZoomPercent += 10
-                                }
-                            },
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, StudioBorder),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = StudioCard,
-                                contentColor = StudioBlue
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                            modifier = Modifier
-                                .height(34.dp)
-                                .testTag("code_font_increase_button")
-                        ) {
-                            Text(
-                                text = "A+",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = StudioBlue
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 3. Linear Progress Indicator at the top of the viewport
+            // Linear Progress Indicator at the top of the viewport
             if (pageProgress in 1..99) {
                 LinearProgressIndicator(
                     progress = { pageProgress / 100f },
@@ -331,7 +246,67 @@ fun StudioScreen() {
                 )
             }
 
-            // 4. Error Overlay Card if network error occurred
+            // Floating Code Font Size Overlay Bar (only in Code & Split modes)
+            AnimatedVisibility(
+                visible = currentMode == StudioViewMode.CODE_ONLY || currentMode == StudioViewMode.SPLIT_CODE_PREVIEW,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(12.dp)
+            ) {
+                Surface(
+                    color = StudioSurface.copy(alpha = 0.92f),
+                    shape = RoundedCornerShape(20.dp),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier
+                        .border(1.dp, StudioBorder, RoundedCornerShape(20.dp))
+                        .testTag("code_font_overlay_bar")
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "A-",
+                            color = StudioTextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable {
+                                    if (codeZoomPercent > 50) codeZoomPercent -= 10
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .testTag("code_zoom_out_button")
+                        )
+                        Text(
+                            text = "$codeZoomPercent%",
+                            color = StudioBlue,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .clickable { codeZoomPercent = 100 }
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                                .testTag("code_zoom_reset_button")
+                        )
+                        Text(
+                            text = "A+",
+                            color = StudioTextPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable {
+                                    if (codeZoomPercent < 200) codeZoomPercent += 10
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .testTag("code_zoom_in_button")
+                        )
+                    }
+                }
+            }
+
+            // Error Overlay Card if network error occurred
             AnimatedVisibility(
                 visible = errorMessage != null,
                 enter = fadeIn(),
@@ -404,7 +379,7 @@ fun StudioScreen() {
             onUserAgentSelected = { profile ->
                 userAgentProfile = profile
                 scope.launch {
-                    snackbarHostState.showSnackbar("Perfil cambiado: ${profile.label}")
+                    snackbarHostState.showSnackbar("Modo de conexión: ${profile.label}")
                 }
             },
             onNavigate = { newUrl ->
@@ -414,15 +389,9 @@ fun StudioScreen() {
             },
             onOpenInChrome = { urlToOpen ->
                 try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlToOpen)).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlToOpen))
                     context.startActivity(intent)
-                } catch (e: Exception) {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("No se pudo abrir el navegador externo")
-                    }
-                }
+                } catch (_: Exception) {}
             },
             onDismiss = { showUrlSelector = false }
         )

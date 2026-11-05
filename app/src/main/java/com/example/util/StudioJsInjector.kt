@@ -9,13 +9,13 @@ object StudioJsInjector {
 
     /**
      * Desktop Chrome User Agent on Linux X11 x86_64.
+     * Prevents Google 403 disallowed_useragent and forces the full desktop workspace.
      */
     const val DESKTOP_USER_AGENT =
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
     /**
-     * Firefox Desktop User Agent.
-     * Bypasses Blink-specific WebView/Chrome Client Hint mismatches on Google accounts login.
+     * Firefox Desktop User Agent for OAuth Login Bypass.
      */
     const val FIREFOX_USER_AGENT =
         "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0"
@@ -25,9 +25,7 @@ object StudioJsInjector {
     const val PROMPTS_STUDIO_URL = "https://aistudio.google.com/prompts/new_chat"
 
     /**
-     * Stealth script injected on page start to mask Android WebView properties
-     * before Google's anti-embedded-webview scripts execute, and convert
-     * window.open / target="_blank" to same-window navigation so login never hangs.
+     * Stealth script injected to bypass WebView detection during Google Login.
      */
     fun getLoginStealthScript(): String {
         return """
@@ -55,8 +53,38 @@ object StudioJsInjector {
     }
 
     /**
-     * Initializes in-page error, network (fetch/XHR), and console telemetry capture
-     * for the Debug menu's "Capturar Logs y Red (.txt)" action.
+     * Triggers the AI Studio Settings Gear button (<ms-settings-toggle-button>)
+     * to open or close the lateral settings drawer (<ms-settings-sidebar>),
+     * even when div.page-header is softly collapsed.
+     */
+    fun getToggleSettingsSidebarScript(): String {
+        return """
+            (function() {
+                try {
+                    var gearBtn = document.querySelector(
+                        'ms-settings-toggle-button button, ' +
+                        'ms-settings-toggle-button [role="button"], ' +
+                        '.page-header [aria-label*="Configuraci"], ' +
+                        '.page-header [aria-label*="Setting"], ' +
+                        '.page-header [aria-label*="setting"], ' +
+                        'ms-settings-toggle-button'
+                    );
+                    if (gearBtn) {
+                        gearBtn.click();
+                        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                        gearBtn.dispatchEvent(evt);
+                        return "OK";
+                    }
+                    return "NOT_FOUND";
+                } catch (e) {
+                    return "ERR:" + e.toString();
+                }
+            })();
+        """.trimIndent()
+    }
+
+    /**
+     * Installs console & network error interceptors for the Debug Report.
      */
     fun getErrorLoggerInitScript(): String {
         return """
@@ -121,7 +149,7 @@ object StudioJsInjector {
     }
 
     /**
-     * Generates and sends the complete Error, Console, and Network diagnostic report to AndroidBridge.
+     * Extracts the full Error & Network Report and sends it to AndroidBridge.onErrorReportExtracted.
      */
     fun getErrorReportExtractionScript(): String {
         return """
@@ -183,7 +211,7 @@ object StudioJsInjector {
     }
 
     /**
-     * Comprehensive DOM Structure Extractor script for "Guardar Estructura DOM (.txt)".
+     * Extracts the full DOM structure report and sends it to AndroidBridge.onDomExtracted.
      */
     fun getDomExtractionScript(): String {
         return """
@@ -304,6 +332,8 @@ object StudioJsInjector {
 
     /**
      * Initial setup script injected once DOM is ready.
+     * Safely identifies and tags suggestion cards above the chat input box, while strictly
+     * protecting ms-autoscroll-container and all chat message turns from ever being tagged.
      */
     fun getInitScript(): String {
         return """
@@ -313,27 +343,188 @@ object StudioJsInjector {
                     styleTag.id = 'studio-tablet-overrides';
                     document.head.appendChild(styleTag);
                 }
+
+                window.__tagChatSuggestions = function() {
+                    try {
+                        var chatRoot = document.querySelector('ms-code-assistant-chat');
+                        if (!chatRoot) return;
+
+                        /* Helper: Never tag the message history viewport or any parent/child of chat turns */
+                        function isProtectedChatHistory(el) {
+                            if (!el) return true;
+                            var tag = (el.tagName || '').toLowerCase();
+                            if (tag === 'ms-autoscroll-container' ||
+                                tag === 'ms-console-assistant-response' ||
+                                tag === 'ms-console-turn' ||
+                                tag === 'ms-cmark-node' ||
+                                tag === 'ms-chat-step' ||
+                                tag === 'ms-expandable-turn') {
+                                return true;
+                            }
+                            if (el.classList && (
+                                el.classList.contains('container') ||
+                                el.classList.contains('bottom-container') ||
+                                el.classList.contains('input-container') ||
+                                el.classList.contains('sticky-content')
+                            )) {
+                                return true;
+                            }
+                            if (el.querySelector && (
+                                el.querySelector('textarea') ||
+                                el.querySelector('ms-autoscroll-container') ||
+                                el.querySelector('ms-console-assistant-response') ||
+                                el.querySelector('ms-console-turn')
+                            )) {
+                                return true;
+                            }
+                            return false;
+                        }
+
+                        /* First clear any accidental tags on protected elements */
+                        var previouslyTagged = chatRoot.querySelectorAll('[data-studio-suggestions="true"]');
+                        for (var p = 0; p < previouslyTagged.length; p++) {
+                            if (isProtectedChatHistory(previouslyTagged[p])) {
+                                previouslyTagged[p].removeAttribute('data-studio-suggestions');
+                            }
+                        }
+
+                        /* 1. Tag by specific suggestion tag name or class name keywords */
+                        var candidates = chatRoot.querySelectorAll('*');
+                        for (var i = 0; i < candidates.length; i++) {
+                            var el = candidates[i];
+                            if (isProtectedChatHistory(el)) continue;
+                            /* Also skip if inside a chat turn / response */
+                            if (el.closest && el.closest('ms-console-assistant-response, ms-console-turn, ms-chat-step')) continue;
+
+                            var tag = (el.tagName || '').toLowerCase();
+                            var cls = (typeof el.className === 'string') ? el.className.toLowerCase() : '';
+                            if (tag.indexOf('suggest') !== -1 ||
+                                tag.indexOf('starter') !== -1 ||
+                                tag.indexOf('zero-state') !== -1 ||
+                                tag.indexOf('chip-carousel') !== -1 ||
+                                cls.indexOf('suggestion') !== -1 ||
+                                cls.indexOf('starter-card') !== -1 ||
+                                cls.indexOf('follow-up') !== -1 ||
+                                cls.indexOf('followup') !== -1) {
+                                el.setAttribute('data-studio-suggestions', 'true');
+                            }
+                        }
+
+                        /* 2. Tag horizontal card carousels sitting above the chat input box */
+                        var containers = chatRoot.querySelectorAll('div, section, ul, ms-horizontal-scroll');
+                        for (var j = 0; j < containers.length; j++) {
+                            var c = containers[j];
+                            if (c.hasAttribute('data-studio-suggestions')) continue;
+                            if (isProtectedChatHistory(c)) continue;
+                            if (c.closest && c.closest('ms-console-assistant-response, ms-console-turn, ms-chat-step')) continue;
+
+                            var children = c.children;
+                            if (!children || children.length < 2 || children.length > 10) continue;
+
+                            var cardCount = 0;
+                            var firstTop = null;
+                            for (var k = 0; k < children.length; k++) {
+                                var ch = children[k];
+                                if (isProtectedChatHistory(ch)) continue;
+                                var r = ch.getBoundingClientRect();
+                                if (r.height >= 64 && r.height <= 240 && r.width >= 110 && r.width <= 360) {
+                                    if (firstTop === null) {
+                                        firstTop = r.top;
+                                        cardCount++;
+                                    } else if (Math.abs(r.top - firstTop) < 20) {
+                                        cardCount++;
+                                    }
+                                }
+                            }
+                            if (cardCount >= 2) {
+                                c.setAttribute('data-studio-suggestions', 'true');
+                                if (c.parentElement &&
+                                    c.parentElement !== chatRoot &&
+                                    c.parentElement.children.length === 1 &&
+                                    !isProtectedChatHistory(c.parentElement)) {
+                                    c.parentElement.setAttribute('data-studio-suggestions', 'true');
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                };
+
+                window.__tagChatSuggestions();
+                if (!window.__studioSuggestionInterval) {
+                    window.__studioSuggestionInterval = setInterval(window.__tagChatSuggestions, 700);
+                }
             })();
         """.trimIndent()
     }
 
     /**
-     * Generates CSS rules and interactive setup for the active view mode,
-     * delegating to the isolated view modules:
-     * - OriginalViewModule (ALL)
-     * - ChatViewModule (CHAT_ONLY)
-     * - CodeViewModule (CODE_ONLY)
+     * Generates CSS rules for the active view mode, code zoom, and suggestion visibility.
+     * Uses soft non-destructive collapse (height:0 / width:0 / opacity:0 / pointer-events:none)
+     * instead of display:none so that:
+     * 1. The top project bar (div.page-header) and its settings gear (<ms-settings-toggle-button>)
+     *    remain alive in the DOM and can open the lateral settings drawer (<ms-settings-sidebar>).
+     * 2. The chat history (<ms-autoscroll-container>) never collapses to 0px or unmounts.
      */
-    fun getModeScript(mode: StudioViewMode, codeZoomPercent: Int = 100): String {
+    fun getModeScript(
+        mode: StudioViewMode,
+        codeZoomPercent: Int = 100,
+        showSuggestions: Boolean = false
+    ): String {
         val clampedZoom = codeZoomPercent.coerceIn(60, 240)
-        val fontSizePx = ((14.0 * clampedZoom) / 100.0).toInt().coerceAtLeast(8)
-        val lineHeightPx = (fontSizePx * 1.45).toInt().coerceAtLeast(12)
 
-        val cssRules = when (mode) {
+        val globalSuggestionHideCss = if (!showSuggestions) {
+            """
+            ms-code-assistant-chat [data-studio-suggestions="true"],
+            ms-code-assistant-chat ms-prompt-suggestions,
+            ms-code-assistant-chat ms-zero-state,
+            ms-code-assistant-chat .zero-state-container,
+            ms-code-assistant-chat .starter-cards-container,
+            ms-code-assistant-chat .suggestions-carousel {
+                height: 0px !important;
+                min-height: 0px !important;
+                max-height: 0px !important;
+                margin: 0px !important;
+                padding: 0px !important;
+                border: none !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+            """.trimIndent()
+        } else {
+            ""
+        }
+
+        /* Ensure lateral drawers and overlays (Settings sidebar, Features sidebar, CDK menus)
+           always appear above everything when opened via the gear button */
+        val drawersProtectionCss = """
+            ms-settings-sidebar,
+            ms-features-sidebar,
+            ms-sliding-drawer,
+            ms-console-editor-settings,
+            .cdk-overlay-container {
+                z-index: 99999 !important;
+            }
+        """.trimIndent()
+
+        val modeCss = when (mode) {
             StudioViewMode.ALL -> OriginalViewModule.getCss()
-            StudioViewMode.CHAT_ONLY -> ChatViewModule.getCss()
+            StudioViewMode.CHAT_ONLY -> ChatViewModule.getCss(showSuggestions)
             StudioViewMode.CODE_ONLY -> CodeViewModule.getCss(clampedZoom)
             StudioViewMode.PREVIEW_ONLY -> """
+                ms-console-embed > .page-header,
+                ms-console-embed div.page-header {
+                    height: 0px !important;
+                    min-height: 0px !important;
+                    max-height: 0px !important;
+                    margin: 0px !important;
+                    padding: 0px !important;
+                    border: none !important;
+                    overflow: hidden !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                }
                 ms-console-embed .root,
                 ms-console-embed .root > .container {
                     width: 100% !important;
@@ -346,7 +537,14 @@ object StudioJsInjector {
                 ms-console-embed .root > .container > ms-console-splitter,
                 ms-console-embed .editor-container,
                 div.editor-container {
-                    display: none !important;
+                    width: 0px !important;
+                    min-width: 0px !important;
+                    max-width: 0px !important;
+                    flex: 0 0 0px !important;
+                    overflow: hidden !important;
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                    pointer-events: none !important;
                 }
                 ms-console-embed .console-right-panel,
                 div.console-right-panel,
@@ -361,12 +559,34 @@ object StudioJsInjector {
                     max-width: 100% !important;
                     height: 100% !important;
                     flex: 1 1 100% !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    pointer-events: auto !important;
                 }
             """.trimIndent()
             StudioViewMode.SPLIT_CHAT_PREVIEW -> """
+                ms-console-embed > .page-header,
+                ms-console-embed div.page-header {
+                    height: 0px !important;
+                    min-height: 0px !important;
+                    max-height: 0px !important;
+                    margin: 0px !important;
+                    padding: 0px !important;
+                    border: none !important;
+                    overflow: hidden !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                }
                 ms-console-embed .editor-container,
                 div.editor-container {
-                    display: none !important;
+                    width: 0px !important;
+                    min-width: 0px !important;
+                    max-width: 0px !important;
+                    flex: 0 0 0px !important;
+                    overflow: hidden !important;
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                    pointer-events: none !important;
                 }
                 ms-console-embed .console-left-panel,
                 div.console-left-panel {
@@ -374,6 +594,9 @@ object StudioJsInjector {
                     width: 50% !important;
                     max-width: 50% !important;
                     flex: 1 1 50% !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    pointer-events: auto !important;
                 }
                 ms-console-embed .console-right-panel,
                 div.console-right-panel,
@@ -385,13 +608,35 @@ object StudioJsInjector {
                     width: 50% !important;
                     max-width: 50% !important;
                     flex: 1 1 50% !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    pointer-events: auto !important;
                 }
             """.trimIndent()
             StudioViewMode.SPLIT_CODE_PREVIEW -> """
+                ms-console-embed > .page-header,
+                ms-console-embed div.page-header {
+                    height: 0px !important;
+                    min-height: 0px !important;
+                    max-height: 0px !important;
+                    margin: 0px !important;
+                    padding: 0px !important;
+                    border: none !important;
+                    overflow: hidden !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                }
                 ms-console-embed .console-left-panel,
                 div.console-left-panel,
                 ms-console-embed .root > .container > ms-console-splitter {
-                    display: none !important;
+                    width: 0px !important;
+                    min-width: 0px !important;
+                    max-width: 0px !important;
+                    flex: 0 0 0px !important;
+                    overflow: hidden !important;
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                    pointer-events: none !important;
                 }
                 ms-console-embed .console-right-panel,
                 div.console-right-panel {
@@ -421,7 +666,8 @@ object StudioJsInjector {
             """.trimIndent()
         }
 
-        val cleanCss = cssRules
+        val combinedCss = "$drawersProtectionCss\n$modeCss\n$globalSuggestionHideCss"
+        val cleanCss = combinedCss
             .replace(Regex("/\\*[\\s\\S]*?\\*/"), " ")
             .replace("\n", " ")
             .replace("\r", " ")
@@ -433,6 +679,9 @@ object StudioJsInjector {
 
         return """
             (function() {
+                if (window.__tagChatSuggestions) {
+                    window.__tagChatSuggestions();
+                }
                 var styleTag = document.getElementById('studio-tablet-overrides');
                 if (!styleTag) {
                     styleTag = document.createElement('style');

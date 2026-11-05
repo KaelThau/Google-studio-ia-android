@@ -1,0 +1,125 @@
+==================================================================
+GOOGLE AI STUDIO - RADIOGRAFIA COMPLETA DE ESTRUCTURA DOM
+==================================================================
+Fecha: 2026-11-05T03:32:10.412Z
+URL Actual: https://aistudio.google.com/apps/a06ef099-c975-4982-a638-0636ed67d0a1?showAssistant=true&showCode=true
+Titulo: Studio Tablet | Google AI Studio
+Viewport: 601x910
+
+--- 1. COMPONENTES PERSONALIZADOS (Angular / Custom Tags) ---
+  <app-root> -> 601x910@(0,0) 
+  <router-outlet> -> 601x0@(0,0)  | 0x0@(0,0) .ng-tns-c1811914685-0
+  <ms-app> -> 601x910@(0,0) .ng-tns-c1811914685-0.ng-star-inserted
+  <ms-global-banner> -> 601x0@(0,0) .ng-tns-c1811914685-0
+  <ms-console-component> -> 601x910@(0,0) .ng-star-inserted
+  <ms-console-embed> -> 601x910@(0,0) .ng-star-inserted
+  <ms-github-sync-indicator> -> 0x0@(0,0) .ng-star-inserted
+  <ms-settings-toggle-button> -> 32x32@(561,16) .ng-star-inserted
+  <mat-menu> -> 0x0@(0,0)  | 0x0@(0,0)  | 0x0@(0,0) .ng-star-inserted | 0x0@(0,0)  | 0x0@(0,0) .ng-star-inserted
+  <ms-code-assistant-chat> -> 351x845@(0,65) 
+  <ms-autoscroll-container> -> 351x671@(0,113) .sticky-content.ng-star-inserted
+  <ms-console-assistant-response> -> 319x523@(16,-8643)  | 319x1167@(16,-7894)  | 319x969@(16,-6488)  | 319x355@(16,-5355)  | 319x1482@(16,-4505) 
+  <ms-console-turn> -> 0x0@(0,0) .ng-star-inserted | 0x0@(0,0)  | 0x0@(0,0) .ng-star-inserted | 0x0@(0,0) .ng-star-inserted | 0x0@(0,0) .ng-star-inserted
+  <ms-cmark-node> -> 0x0@(0,0) .ng-star-inserted | 0x0@(0,0)  | 0x0@(0,0)  | 0x0@(0,0) .ng-star-inserted | 0x0@(0,0) 
+  <mat-divider> -> 351x1@(0,-8092) .mat-divider.mat-divider-horizontal.ng-star-inserted | 351x1@(0,-6691) .mat-divider.mat-divider-horizontal.ng-star-inserted | 351x1@(0,-5483) .mat-divider.mat-divider-horizontal.ng-star-inserted | 351x1@(0,-4972) .mat-divider.mat-divider-horizontal.ng-star-inserted | 351x1@(0,-2995) .mat-divider.mat-divider-horizontal.ng-star-inserted
+  <ms-file-preview> -> 205x33@(36,-7993) .ng-star-inserted
+  <ms-chat-step> -> 302x27@(21,-7823) .ng-star-inserted | 302x27@(21,-7714) .ng-star-inserted | 302x27@(21,-6417) .ng-star-inserted | 302x27@(21,-6327) .ng-star-inserted | 327x27@(8,-830) .ng-star-inserted
+  <ms-expandable-turn> -> 302x27@(21,-7823)  | 302x27@(21,-7714)  | 302x27@(21,-6417)  | 302x27@(21,-6327)  | 327x27@(8,-830) 
+  <ms-console-generation-table> -> 281x76@(42,-7796) .ng-star-inserted | 281x57@(42,-6390) .ng-star-inserted | 306x86@(29,-803) .ng-star-inserted
+  <ms-console-generation-table-row> -> 281x18@(42,-7796) .ng-star-inserted | 281x18@(42,-7777) .ng-star-inserted | 281x18@(42,-7757) .ng-star-inserted | 281x18@(42,-7737) .ng-star-inserted | 281x18@(42,-6390) .ng-star-inserted
+  <ms-gradient-spinner> -> 20x20@(15,426) .ng-star-inserted
+  <ms-add-media-menu> -> 24x32@(21,857) 
+  <ms-mode-selector> -> 72x32@(178,857) .ng-star-inserted
+  <ms-stt-button> -> 32x32@(259,857) 
+  <ms-console-splitter> -> 0x845@(352,65) .visible | 0x796@(540,113) .visible.ng-star-inserted
+  <ms-console-subheader> -> 249x49@(352,65) .backend-gen-enabled.desktop-variant.ng-star-inserted
+  <ms-build-mode-toggle> -> 136x32@(360,73) .ng-star-inserted
+  <ms-files-panel> -> 0x0@(0,0) 
+  <ms-markdown-preview> -> 0x0@(0,0) 
+  <ms-console-file-tree> -> 171x796@(360,113) 
+  <mat-tree> -> 171x748@(360,161) .mat-tree.cdk-tree.mat-context-menu-trigger
+  <mat-tree-node> -> 171x24@(360,161) .mat-tree-node.cdk-tree-node.mat-context-menu-trigger.folder-node.ng-star-inserted | 0x0@(0,0) .mat-tree-node.cdk-tree-node.mat-context-menu-trigger.folder-node.node-is-hidden.ng-star-inserted | 0x0@(0,0) .mat-tree-node.cdk-tree-node.mat-context-menu-trigger.folder-node.node-is-hidden.ng-star-inserted | 0x0@(0,0) .mat-tree-node.cdk-tree-node.mat-context-menu-trigger.folder-node.node-is-hidden.ng-star-inserted | 0x0@(0,0) .mat-tree-node.cdk-tree-node.mat-context-menu-trigger.selectable.node-is-hidden.ng-star-inserted
+  <ms-horizontal-scroll> -> 13x32@(548,121) .code-editor-tabs.background-surface-container
+  <ms-file-tabs> -> 79x32@(548,121) 
+  <ms-console-editor> -> 61x747@(540,162) .visible
+  <ms-applet-viewer> -> 249x814@(-850,65) .ng-star-inserted
+  <ms-safe-iframe-url-renderer> -> 249x814@(-850,65) 
+  <ms-console-status> -> 249x31@(-850,879) .viewport-small-hidden.ng-star-inserted
+  <ms-unsaved-changes-indicator> -> 249x0@(352,898) .ng-star-inserted
+  <ms-sliding-drawer> -> 601x0@(0,910) 
+  <ms-settings-sidebar> -> 601x0@(0,910) 
+  <ms-sliding-right-panel> -> 0x0@(0,910)  | 0x0@(0,910)  | 0x0@(0,910)  | 0x0@(0,910)  | 0x0@(0,910) 
+  <ms-features-sidebar> -> 601x0@(0,910) 
+  <ms-console-editor-settings> -> 601x0@(0,910) 
+
+--- 2. ELEMENTOS CLAVE (Chat Inputs, Editores, Iframes, Pestañas) ---
+  * div.layout-wrapper.ng-tns-c1811914685-0[role=main] [601x910 @ 0,0] txt='arrow_back Studio Tablet arrow_split Remix Share P'
+      Padres: div.makersuite-layout.ng-tns-c1811914685-0(601x910) <- div.banner-and-app-container.ng-tns-c1811914685-0(601x910) <- ms-app.ng-tns-c1811914685-0.ng-star-inserted(601x910) <- app-root(601x910)
+  * textarea.cdk-textarea-autosize.ng-pristine.ng-valid.ng-touched[placeholder='Make changes, add new features, ask for anything'] [310x48 @ 21,797] txt=''
+      Padres: div.input-container.ng-star-inserted(335x117) <- div.bottom-container(351x125) <- div.container(351x845) <- ms-code-assistant-chat(351x845) <- div.console-left-panel.visible(352x845) <- div.container(601x845)
+  * div.monaco-editor.no-user-select.showUnused.showDeprecated[role=code] [60x747 @ 540,162] txt='1 2 3 4 5 6 7 { "name": "Studio Tablet", "descript'
+      Padres: div.editor(61x747) <- div.editor-workspace(61x747) <- ms-console-editor.visible(61x747) <- div.code-editor.ng-star-inserted(61x796) <- div.editor-container.visible(249x796) <- div.console-right-panel.visible(249x845)
+  * iframe [249x814 @ -850,65] txt=''
+      Padres: ms-safe-iframe-url-renderer(249x814) <- div.output(249x814) <- ms-applet-viewer.ng-star-inserted(249x814) <- div.applet-container(249x845) <- div.console-right-panel.visible(249x845) <- div.container(601x845)
+
+--- 3. ARBOL JERARQUICO DE LAYOUT (Containers & Paneles) ---
+<body.dark-theme.enable-motion.underline-links> (601x910 @0,0) {disp:flex, pos:static, flex:column}
+  <app-root> (601x910 @0,0) {disp:flex, pos:static, flex:column}
+    <router-outlet> (601x0 @0,0) {disp:block, pos:static, flex:row}
+    <ms-app.ng-tns-c1811914685-0.ng-star-inserted> (601x910 @0,0) {disp:flex, pos:static, flex:row}
+      <div.banner-and-app-container.ng-tns-c1811914685-0> (601x910 @0,0) {disp:flex, pos:static, flex:column}
+        <button.skip-content.ng-tns-c1811914685-0> (97x17 @-500,0) {disp:block, pos:absolute, flex:row}
+        <ms-global-banner.ng-tns-c1811914685-0> (601x0 @0,0) {disp:block, pos:static, flex:row}
+        <div.makersuite-layout.ng-tns-c1811914685-0> (601x910 @0,0) {disp:flex, pos:relative, flex:row}
+          <div.layout-wrapper.ng-tns-c1811914685-0> [role='main'] (601x910 @0,0) {disp:flex, pos:static, flex:column}
+            <div.layout-main.ng-tns-c1811914685-0> (601x910 @0,0) {disp:block, pos:static, flex:row}
+              <span.router-outlet-wrapper.ng-tns-c1811914685-0> (601x910 @0,0) {disp:block, pos:static, flex:row}
+                <router-outlet.ng-tns-c1811914685-0> (0x0 @0,0) {disp:inline, pos:static, flex:row}
+                <ms-console-component.ng-star-inserted> (601x910 @0,0) {disp:flex, pos:static, flex:column}
+                  <ms-console-embed.ng-star-inserted> (601x910 @0,0) {disp:flex, pos:static, flex:column}
+                    <div.page-header.ng-star-inserted> (601x64 @0,0) {disp:flex, pos:static, flex:row}
+                      <div.left-side> (156x32 @8,16) {disp:flex, pos:static, flex:row}
+                        <a.mat-mdc-tooltip-trigger.viewport-medium-shown.ms-button-icon.ms-button-primary> [aria-label='Back to start', data-test-id='back-button'] (32x32 @8,16) {disp:flex, pos:static, flex:row}
+                      <div.center> (172x32 @164,16) {disp:flex, pos:static, flex:row}
+                        <h1.page-title> (53x13 @224,26) {disp:block, pos:static, flex:row}
+                      <div.right-side> (256x32 @337,16) {disp:flex, pos:static, flex:row}
+                        <div.button-container> (256x32 @337,16) {disp:flex, pos:static, flex:row}
+                          <button.mat-mdc-tooltip-trigger.ms-button-borderless.ng-star-inserted> [aria-label='Copy app', data-test-id='applet-copy-button'] (65x32 @337,16) {disp:flex, pos:static, flex:row}
+                          <button.mat-mdc-tooltip-trigger.button-border.ms-button-primary> [aria-label='Abrir la configuración de uso compartido'] (49x32 @407,16) {disp:flex, pos:static, flex:row}
+                          <button#applet-publish-button-step-anchor.mat-mdc-tooltip-trigger.button-border.ms-button-borderless.ng-star-inserted> [aria-label='Abrir la configuración de publicación'] (55x32 @462,16) {disp:flex, pos:static, flex:row}
+                          <ms-github-sync-indicator.ng-star-inserted> (0x0 @0,0) {disp:contents, pos:static, flex:row}
+                          <button.mat-mdc-tooltip-trigger.ms-button-borderless.ms-button-icon.ng-star-inserted> [aria-label='Submit bug'] (32x32 @523,16) {disp:flex, pos:static, flex:row}
+                          <ms-settings-toggle-button.ng-star-inserted> (32x32 @561,16) {disp:block, pos:static, flex:row}
+                            <button.mat-mdc-tooltip-trigger.ms-button-borderless.ms-button-icon> [aria-label='Configuración'] (32x32 @561,16) {disp:flex, pos:static, flex:row}
+                    <mat-menu> (0x0 @0,0) {disp:none, pos:static, flex:row}
+                    <div.root> (601x846 @0,64) {disp:flex, pos:relative, flex:column}
+                      <div.container> (601x845 @0,65) {disp:flex, pos:relative, flex:row}
+                        <div.console-left-panel.visible> (352x845 @0,65) {disp:flex, pos:static, flex:column}
+                          <ms-code-assistant-chat> (351x845 @0,65) {disp:block, pos:static, flex:row}
+                            <div.container> (351x845 @0,65) {disp:flex, pos:relative, flex:column}
+                        <ms-console-splitter.visible> (0x845 @352,65) {disp:flex, pos:relative, flex:column}
+                          <div.overlay> (8x845 @348,65) {disp:block, pos:absolute, flex:row}
+                        <div.console-right-panel.visible> (249x845 @352,65) {disp:flex, pos:relative, flex:column}
+                          <ms-console-subheader.backend-gen-enabled.desktop-variant.ng-star-inserted> (249x49 @352,65) {disp:flex, pos:static, flex:row}
+                            <div.left-section.artifacts-enabled.ng-star-inserted> (154x32 @360,73) {disp:flex, pos:static, flex:row}
+                            <div.right-section.android-applet.artifacts-enabled.ng-star-inserted> (67x32 @526,73) {disp:flex, pos:static, flex:row}
+                          <div.editor-container.visible> (249x796 @352,113) {disp:flex, pos:relative, flex:row}
+                            <div.tree-view-container.visible.ng-star-inserted> (188x796 @352,113) {disp:flex, pos:static, flex:column}
+                            <ms-console-splitter.visible.ng-star-inserted> (0x796 @540,113) {disp:flex, pos:relative, flex:column}
+                            <div.code-editor.ng-star-inserted> (61x796 @540,113) {disp:flex, pos:static, flex:column}
+                          <div.applet-container> (249x845 @-850,65) {disp:flex, pos:absolute, flex:column}
+                            <ms-applet-viewer.ng-star-inserted> (249x814 @-850,65) {disp:flex, pos:relative, flex:row}
+                            <ms-console-status.viewport-small-hidden.ng-star-inserted> (249x31 @-850,879) {disp:flex, pos:relative, flex:column}
+                          <ms-unsaved-changes-indicator.ng-star-inserted> (249x0 @352,898) {disp:block, pos:absolute, flex:row}
+                    <ms-sliding-drawer> (601x0 @0,910) {disp:block, pos:static, flex:row}
+                    <ms-settings-sidebar> (601x0 @0,910) {disp:block, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}
+                    <ms-features-sidebar> (601x0 @0,910) {disp:block, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}
+                    <ms-console-editor-settings> (601x0 @0,910) {disp:block, pos:static, flex:row}
+                      <ms-sliding-right-panel> (0x0 @0,910) {disp:inline, pos:static, flex:row}

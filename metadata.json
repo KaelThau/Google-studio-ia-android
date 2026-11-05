@@ -1,0 +1,6 @@
+{
+  "name": "Studio Tablet",
+  "description": "Google AI Studio optimizado para tablets con modos de pantalla completa para Chat, Código y Preview.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.model.StudioViewMode
+import com.example.ui.components.FloatingModePill
 import com.example.ui.components.HelpDialog
 import com.example.ui.components.StudioTopBar
 import com.example.ui.components.UrlSelectorDialog
@@ -72,11 +72,10 @@ fun StudioScreen() {
     var targetUrl by remember { mutableStateOf(StudioJsInjector.DEFAULT_STUDIO_URL) }
     var navigateTrigger by remember { mutableLongStateOf(0L) }
     var extractDomTrigger by remember { mutableLongStateOf(0L) }
-    var extractErrorTrigger by remember { mutableLongStateOf(0L) }
-    var pendingTextToSave by remember { mutableStateOf<String?>(null) }
+    var pendingDomReport by remember { mutableStateOf<String?>(null) }
     var observedUrl by remember { mutableStateOf(StudioJsInjector.DEFAULT_STUDIO_URL) }
     var currentMode by remember { mutableStateOf(StudioViewMode.ALL) }
-    var userAgentProfile by remember { mutableStateOf(UserAgentProfile.AUTO_SMART) }
+    var userAgentProfile by remember { mutableStateOf(UserAgentProfile.FIREFOX_DESKTOP) }
     var zoomPercent by remember { mutableIntStateOf(100) }
     var reloadTrigger by remember { mutableLongStateOf(0L) }
     var pageProgress by remember { mutableIntStateOf(0) }
@@ -87,11 +86,11 @@ fun StudioScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Native Android "Save As..." File Picker Launcher for .txt files (both DOM and Error reports)
+    // Native Android "Save As..." File Picker Launcher for .txt files
     val saveTxtLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri: Uri? ->
-        val contentToSave = pendingTextToSave
+        val contentToSave = pendingDomReport
         if (uri != null && contentToSave != null) {
             scope.launch {
                 val success = withContext(Dispatchers.IO) {
@@ -106,7 +105,7 @@ fun StudioScreen() {
                     }
                 }
                 if (success) {
-                    snackbarHostState.showSnackbar("Archivo .txt guardado correctamente")
+                    snackbarHostState.showSnackbar("Archivo estructura_aistudio.txt guardado correctamente")
                 } else {
                     snackbarHostState.showSnackbar("Error al guardar el archivo .txt")
                 }
@@ -120,9 +119,6 @@ fun StudioScreen() {
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(), // Automatically resizes the layout when the soft keyboard opens or closes
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             StudioTopBar(
@@ -149,15 +145,9 @@ fun StudioScreen() {
                 },
                 onExtractDom = {
                     scope.launch {
-                        snackbarHostState.showSnackbar("Extrayendo estructura DOM...")
+                        snackbarHostState.showSnackbar("Extrayendo estructura de la página...")
                     }
                     extractDomTrigger = System.currentTimeMillis()
-                },
-                onExtractErrorReport = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Capturando diagnóstico de errores...")
-                    }
-                    extractErrorTrigger = System.currentTimeMillis()
                 },
                 onOpenUrlSelector = { showUrlSelector = true },
                 onOpenHelp = { showHelpDialog = true }
@@ -170,12 +160,11 @@ fun StudioScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Main WebView (Bottom Floating Pill removed for a clean, unobstructed workspace)
+            // Main WebView
             StudioWebView(
                 targetUrl = targetUrl,
                 navigateTrigger = navigateTrigger,
                 extractDomTrigger = extractDomTrigger,
-                extractErrorTrigger = extractErrorTrigger,
                 currentMode = currentMode,
                 zoomPercent = zoomPercent,
                 reloadTrigger = reloadTrigger,
@@ -194,20 +183,14 @@ fun StudioScreen() {
                     observedUrl = newUrl
                 },
                 onDomExtracted = { report ->
-                    pendingTextToSave = report
+                    pendingDomReport = report
+                    // Also copy to clipboard automatically as a bonus backup
                     try {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                         clipboard?.setPrimaryClip(ClipData.newPlainText("estructura_aistudio", report))
                     } catch (_: Exception) {}
+                    // Open native Android Save File dialog
                     saveTxtLauncher.launch("estructura_aistudio.txt")
-                },
-                onErrorReportExtracted = { errorReport ->
-                    pendingTextToSave = errorReport
-                    try {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        clipboard?.setPrimaryClip(ClipData.newPlainText("errores_aistudio", errorReport))
-                    } catch (_: Exception) {}
-                    saveTxtLauncher.launch("errores_aistudio.txt")
                 },
                 modifier = Modifier
                     .fillMaxSize()
@@ -290,6 +273,20 @@ fun StudioScreen() {
                     }
                 }
             }
+
+            // Floating Quick Mode Pill at the bottom
+            FloatingModePill(
+                currentMode = currentMode,
+                onModeSelected = { mode ->
+                    currentMode = mode
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Modo: ${mode.title}")
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .testTag("floating_mode_pill")
+            )
         }
     }
 

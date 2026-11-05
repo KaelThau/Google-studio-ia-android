@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Language
@@ -39,11 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.StudioViewMode
+import com.example.ui.theme.StudioAmber
 import com.example.ui.theme.StudioBlue
 import com.example.ui.theme.StudioBorder
 import com.example.ui.theme.StudioGreen
 import com.example.ui.theme.StudioNavy
-import com.example.ui.theme.StudioRed
 import com.example.ui.theme.StudioSurface
 import com.example.ui.theme.StudioTextMuted
 import com.example.ui.theme.StudioTextPrimary
@@ -59,7 +59,6 @@ fun StudioTopBar(
     onResetZoom: () -> Unit,
     onReload: () -> Unit,
     onExtractDom: () -> Unit,
-    onExtractErrorReport: () -> Unit,
     onOpenUrlSelector: () -> Unit,
     onOpenHelp: () -> Unit,
     modifier: Modifier = Modifier
@@ -74,7 +73,7 @@ fun StudioTopBar(
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
-            // First Row: App Branding + Diagnostic Buttons + Zoom & Action Controls
+            // First Row: App Branding + Export Structure Button + Zoom & Action Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -88,41 +87,41 @@ fun StudioTopBar(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "Studio Logo",
                         tint = StudioBlue,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Studio",
+                        text = "Studio Tablet",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = StudioTextPrimary
                     )
                 }
 
-                // Controls: Logs Error + Guardar TXT + Zoom + Reload + URL + Help
+                // Controls: Export DOM (.txt) + Zoom + Reload + URL + Help
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Error Report Button ("Logs Error")
+                    // Prominent Export DOM Structure Button
                     Button(
-                        onClick = onExtractErrorReport,
+                        onClick = onExtractDom,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = StudioRed,
+                            containerColor = StudioGreen,
                             contentColor = StudioNavy
                         ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                         modifier = Modifier
-                            .height(30.dp)
-                            .testTag("button_extract_errors")
+                            .height(32.dp)
+                            .testTag("button_extract_dom")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.BugReport,
-                            contentDescription = "Capturar Errores",
-                            modifier = Modifier.size(14.dp)
+                            imageVector = Icons.Default.Download,
+                            contentDescription = "Guardar Estructura TXT",
+                            modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Logs Error",
+                            text = "Guardar TXT",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -130,38 +129,11 @@ fun StudioTopBar(
 
                     Spacer(modifier = Modifier.width(6.dp))
 
-                    // Export DOM Structure Button ("Guardar TXT")
-                    Button(
-                        onClick = onExtractDom,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = StudioGreen,
-                            contentColor = StudioNavy
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        modifier = Modifier
-                            .height(30.dp)
-                            .testTag("button_extract_dom")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Download,
-                            contentDescription = "Guardar Estructura TXT",
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "TXT",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
                     // Zoom Out
                     IconButton(
                         onClick = onZoomOut,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("button_zoom_out")
                     ) {
                         Icon(
@@ -187,7 +159,7 @@ fun StudioTopBar(
                     IconButton(
                         onClick = onZoomIn,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("button_zoom_in")
                     ) {
                         Icon(
@@ -202,7 +174,7 @@ fun StudioTopBar(
                     IconButton(
                         onClick = onReload,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("button_reload_page")
                     ) {
                         Icon(
@@ -217,7 +189,7 @@ fun StudioTopBar(
                     IconButton(
                         onClick = onOpenUrlSelector,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("button_open_url_selector")
                     ) {
                         Icon(
@@ -232,7 +204,7 @@ fun StudioTopBar(
                     IconButton(
                         onClick = onOpenHelp,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("button_open_help_dialog")
                     ) {
                         Icon(
